@@ -112,7 +112,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                         <Checkbox
                           id="donations"
                           checked={courseData.donationSettings.enabled}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked: boolean) => 
                             setCourseData({
                               ...courseData,
                               donationSettings: { ...courseData.donationSettings, enabled: checked }
@@ -176,7 +176,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                 <Checkbox
                   id="subscription"
                   checked={courseData.paymentModels.includes('subscription')}
-                  onCheckedChange={(checked) => handlePaymentModelChange('subscription', checked)}
+                  onCheckedChange={(checked: boolean) => handlePaymentModelChange('subscription', checked)}
                 />
                 <Label htmlFor="subscription" className="font-medium">Subscription-Based</Label>
                 <Badge variant="outline" className="text-xs">Recurring</Badge>
@@ -194,7 +194,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                         <div className="flex items-center space-x-3">
                           <Switch
                             checked={courseData.subscriptionPlans.monthly.enabled}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked: boolean) => 
                               setCourseData({
                                 ...courseData,
                                 subscriptionPlans: {
@@ -233,7 +233,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                         <div className="flex items-center space-x-3">
                           <Switch
                             checked={courseData.subscriptionPlans.quarterly.enabled}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked: boolean) => 
                               setCourseData({
                                 ...courseData,
                                 subscriptionPlans: {
@@ -272,7 +272,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                         <div className="flex items-center space-x-3">
                           <Switch
                             checked={courseData.subscriptionPlans.halfYearly.enabled}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked: boolean) => 
                               setCourseData({
                                 ...courseData,
                                 subscriptionPlans: {
@@ -311,7 +311,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                         <div className="flex items-center space-x-3">
                           <Switch
                             checked={courseData.subscriptionPlans.annual.enabled}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked: boolean) => 
                               setCourseData({
                                 ...courseData,
                                 subscriptionPlans: {
@@ -352,7 +352,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                       <Checkbox
                         id="autoRenew"
                         checked={courseData.subscriptionPlans.autoRenew}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked: boolean) => 
                           setCourseData({
                             ...courseData,
                             subscriptionPlans: { ...courseData.subscriptionPlans, autoRenew: checked }
@@ -374,7 +374,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                 <Checkbox
                   id="upfront"
                   checked={courseData.paymentModels.includes('upfront')}
-                  onCheckedChange={(checked) => handlePaymentModelChange('upfront', checked)}
+                  onCheckedChange={(checked: boolean) => handlePaymentModelChange('upfront', checked)}
                 />
                 <Label htmlFor="upfront" className="font-medium">One-Time Upfront Payment</Label>
                 <Badge variant="outline" className="text-xs">Lifetime Access</Badge>
@@ -410,7 +410,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                         <Checkbox
                           id="installments"
                           checked={courseData.upfrontPayment.allowInstallments}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked: boolean) => 
                             setCourseData({
                               ...courseData,
                               upfrontPayment: { ...courseData.upfrontPayment, allowInstallments: checked }
@@ -599,7 +599,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                 <Checkbox
                   id="invoice"
                   checked={courseData.paymentModels.includes('invoice')}
-                  onCheckedChange={(checked) => handlePaymentModelChange('invoice', checked)}
+                  onCheckedChange={(checked: boolean) => handlePaymentModelChange('invoice', checked)}
                 />
                 <Label htmlFor="invoice" className="font-medium">Invoice-Based Post-Paid</Label>
                 <Badge variant="outline" className="text-xs">Manual Processing</Badge>
@@ -614,7 +614,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                     <Checkbox
                       id="studentRequests"
                       checked={courseData.invoiceBased.allowStudentRequests}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked: boolean) => 
                         setCourseData({
                           ...courseData,
                           invoiceBased: { ...courseData.invoiceBased, allowStudentRequests: checked }
