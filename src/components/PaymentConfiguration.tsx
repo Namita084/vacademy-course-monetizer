@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,7 +110,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
     setValidationErrors({});
   };
 
-  const calculateTotalFromInstallments = (plan: InstallmentPlan) => {
+  const calculateTotalFromInstallments = (plan: { numberOfPayments: number; amountPerPayment: number }) => {
     return plan.numberOfPayments * plan.amountPerPayment;
   };
 
