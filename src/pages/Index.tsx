@@ -3,7 +3,7 @@ import React from 'react';
 import { AdminNavigation } from '@/components/AdminNavigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Users, DollarSign, TrendingUp, Plus, Settings } from 'lucide-react';
+import { BookOpen, Users, DollarSign, TrendingUp, Plus, Settings, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
@@ -107,6 +107,12 @@ const Index = () => {
                 <Button className="w-full justify-start bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Course
+                </Button>
+              </Link>
+              <Link to="/invite">
+                <Button variant="outline" className="w-full justify-start text-[#ED7424] border-[#ED7424] hover:bg-orange-50">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Create New Invite
                 </Button>
               </Link>
               <Button variant="outline" className="w-full justify-start">
