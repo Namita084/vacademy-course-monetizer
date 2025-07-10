@@ -3,7 +3,7 @@ import React from 'react';
 import { AdminNavigation } from '@/components/AdminNavigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Users, DollarSign, TrendingUp, Plus } from 'lucide-react';
+import { BookOpen, Users, DollarSign, TrendingUp, Plus, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
@@ -117,6 +117,12 @@ const Index = () => {
                 <DollarSign className="w-4 h-4 mr-2" />
                 View Payments
               </Button>
+              <Link to="/institute-settings">
+                <Button variant="outline" className="w-full justify-start">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Institute Settings
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

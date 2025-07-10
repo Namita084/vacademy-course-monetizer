@@ -1,0 +1,120 @@
+/** Tabs **/
+.TabsList {
+  display: flex !important;
+  width: 100% !important;
+  border-bottom: none !important;
+  background: none !important;
+  gap: 0 !important;
+  margin-bottom: 2rem !important;
+}
+.TabsTrigger {
+  flex: 1 1 0;
+  text-align: center;
+  padding: 1rem 0;
+  background: #fff;
+  color: #888;
+  font-weight: 500;
+  border: none;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: background 0.15s, color 0.15s;
+  font-size: 1.08rem;
+}
+.TabsTrigger[data-state="active"], .TabsTrigger[data-state="active"]:hover {
+  background: #F5F5F5 !important;
+  color: #222 !important;
+  font-weight: 500;
+  box-shadow: none !important;
+}
+.TabsTrigger:not([data-state="active"]):hover {
+  background: #F7F7F7 !important;
+  color: #222 !important;
+}
+
+/** Inputs **/
+input, .input, .Input, textarea, select {
+  background: #fff !important;
+  border: 1.5px solid #E0E0E0 !important;
+  color: #222 !important;
+  border-radius: 8px !important;
+  font-family: 'Open Sans', sans-serif !important;
+  font-size: 1rem !important;
+  box-shadow: none !important;
+  transition: border 0.15s, box-shadow 0.15s;
+}
+input:focus, .input:focus, .Input:focus, textarea:focus, select:focus {
+  border-color: #bbb !important;
+  box-shadow: 0 0 0 2px #F5F5F5 !important;
+  outline: none !important;
+}
+
+/** Card **/
+.bg-white, .card, .Card, .rounded-lg {
+  background: #fff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 8px 0 rgba(60, 60, 60, 0.04) !important;
+  border: 1px solid #F2E6DE !important;
+}
+
+/** Button **/
+button,
+.button {
+  background-color: #F5F5F5 !important;
+  border-color: #E0E0E0 !important;
+  color: #222 !important;
+  font-family: 'Open Sans', sans-serif !important;
+  font-weight: 600;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  transition: background 0.15s, border 0.15s;
+}
+button:hover,
+.button:hover {
+  background-color: #E0E0E0 !important;
+  border-color: #bbb !important;
+}
+button[variant="outline"],
+.button[variant="outline"] {
+  background: #fff !important;
+  color: #222 !important;
+  border: 1.5px solid #E0E0E0 !important;
+  border-radius: 8px !important;
+}
+button[variant="outline"]:hover,
+.button[variant="outline"]:hover {
+  background: #F5F5F5 !important;
+  color: #222 !important;
+  border-color: #bbb !important;
+}
+.create-course-btn {
+  background: #ED7424 !important;
+  color: #fff !important;
+  border: none !important;
+}
+.create-course-btn:hover {
+  background: #d86420 !important;
+}
+
+/** Badges **/
+.badge, .Badge, .rounded {
+  border-radius: 8px !important;
+  font-family: 'Open Sans', sans-serif !important;
+  font-weight: 500;
+  background: #F5F5F5 !important;
+  color: #888 !important;
+  padding: 0.15em 0.7em !important;
+  font-size: 0.95em !important;
+}
+
+/** Switches **/
+.switch, .Switch {
+  background: #E0E0E0 !important;
+  border: none !important;
+}
+.switch[data-state="checked"], .Switch[data-state="checked"] {
+  background: #bbb !important;
+}
+
+body, .font-sans, .text-base, .text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl, .text-5xl, .text-6xl {
+  font-family: 'Open Sans', sans-serif !important;
+} 

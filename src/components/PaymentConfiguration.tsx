@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,18 +10,86 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Plus, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Info, Plus, Edit, Trash2, AlertTriangle, CheckCircle, XCircle, Globe, Tag, Calendar } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { SubscriptionPlanPreview } from './SubscriptionPlanPreview';
 
 interface InstallmentPlan {
   id: string;
   numberOfPayments: number;
   amountPerPayment: number;
+  dueDates: string[]; // Array of payment due dates
+}
+
+interface SubscriptionPlan {
+  enabled: boolean;
+  price: string;
+  interval: string; // 'monthly', 'quarterly', 'half-yearly', 'annual', 'custom'
+  customInterval?: {
+    value: number;
+    unit: 'days' | 'weeks' | 'months' | 'years';
+  };
+}
+
+interface CourseData {
+  enrollmentType: 'free' | 'paid';
+  paymentModels: string[];
+  currency: string;
+  allowCouponCodes: boolean;
+  donationSettings: {
+    enabled: boolean;
+    suggestedAmounts: string;
+  };
+  subscriptionPlans: {
+    monthly: {
+      enabled: boolean;
+      price: string;
+      interval: string;
+    };
+    quarterly: {
+      enabled: boolean;
+      price: string;
+      interval: string;
+    };
+    halfYearly: {
+      enabled: boolean;
+      price: string;
+      interval: string;
+    };
+    annual: {
+      enabled: boolean;
+      price: string;
+      interval: string;
+    };
+    custom: {
+      enabled: boolean;
+      price: string;
+      interval: string;
+      customInterval?: {
+        value: number;
+        unit: 'days' | 'weeks' | 'months' | 'years';
+      };
+    };
+    autoRenew: boolean;
+  };
+  upfrontPayment: {
+    fullPrice: string;
+    allowInstallments: boolean;
+    installmentPlans: InstallmentPlan[];
+    lateFeeType: 'none' | 'fixed' | 'percentage';
+    lateFeeAmount: string;
+    lateFeePercentage: string;
+    gracePeriod: string;
+  };
+  invoiceBased: {
+    allowStudentRequests: boolean;
+  };
+  enrollmentRule: 'automatic' | 'approval';
 }
 
 interface PaymentConfigurationProps {
-  courseData: any;
-  setCourseData: (data: any) => void;
+  courseData: CourseData;
+  setCourseData: (data: CourseData) => void;
 }
 
 interface ValidationErrors {
@@ -30,17 +98,185 @@ interface ValidationErrors {
   installmentPlans?: string;
   donationAmounts?: string;
   lateFee?: string;
+  installmentDates?: string;
+  customInterval?: string;
 }
+
+// Currency options with symbols
+const currencyOptions = [
+  { code: 'USD', name: 'US Dollar', symbol: '$' },
+  { code: 'EUR', name: 'Euro', symbol: '€' },
+  { code: 'GBP', name: 'British Pound', symbol: '£' },
+  { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
+  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
+  { code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
+  { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
+  { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ' },
+];
 
 export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ courseData, setCourseData }) => {
   const [showInstallmentModal, setShowInstallmentModal] = useState(false);
   const [editingInstallment, setEditingInstallment] = useState<InstallmentPlan | null>(null);
+  const [showSubscriptionPreview, setShowSubscriptionPreview] = useState(false);
+  const [subscriptionFeatures] = useState([
+    'Live Classes',
+    '1500 Tests',
+    '500 Students',
+    'Course Content',
+    'Presentations',
+    'Assignments',
+    'Discussion Forums',
+    'Progress Tracking'
+  ]);
   const [newInstallment, setNewInstallment] = useState({
     numberOfPayments: 2,
-    amountPerPayment: 0
+    amountPerPayment: 0,
+    dueDates: [] as string[]
   });
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [isValidating, setIsValidating] = useState(false);
+
+  // Initialize subscription plans if they don't exist
+  useEffect(() => {
+    if (courseData.paymentModels.includes('subscription') && !courseData.subscriptionPlans) {
+      setCourseData({
+        ...courseData,
+        subscriptionPlans: {
+          monthly: {
+            enabled: true,
+            price: '999',
+            interval: 'monthly'
+          },
+          quarterly: {
+            enabled: true,
+            price: '2499',
+            interval: 'quarterly'
+          },
+          halfYearly: {
+            enabled: true,
+            price: '4499',
+            interval: 'halfYearly'
+          },
+          annual: {
+            enabled: true,
+            price: '7999',
+            interval: 'annual'
+          },
+          custom: {
+            enabled: false,
+            price: '',
+            interval: 'custom',
+            customInterval: {
+              value: 1,
+              unit: 'months'
+            }
+          },
+          autoRenew: true
+        }
+      });
+    }
+  }, [courseData.paymentModels]);
+
+  // Get currency symbol
+  const getCurrencySymbol = (currencyCode: string) => {
+    const currency = currencyOptions.find(c => c.code === currencyCode);
+    return currency?.symbol || '$';
+  };
+
+  const handleEnrollmentTypeChange = (value: 'free' | 'paid') => {
+    setCourseData({
+      ...courseData,
+      enrollmentType: value,
+      paymentModels: value === 'free' ? [] : courseData.paymentModels
+    });
+    setValidationErrors({});
+  };
+
+  const handlePaymentModelChange = (model: string, checked: boolean) => {
+    const models = checked 
+      ? [...courseData.paymentModels, model]
+      : courseData.paymentModels.filter((m: string) => m !== model);
+    
+    let updatedData = {
+      ...courseData,
+      paymentModels: models
+    };
+
+    // Initialize subscription plans when enabling subscription model
+    if (model === 'subscription' && checked) {
+      updatedData = {
+        ...updatedData,
+        subscriptionPlans: {
+          monthly: {
+            enabled: true,
+            price: '999',
+            interval: 'monthly'
+          },
+          quarterly: {
+            enabled: true,
+            price: '2499',
+            interval: 'quarterly'
+          },
+          halfYearly: {
+            enabled: true,
+            price: '4499',
+            interval: 'halfYearly'
+          },
+          annual: {
+            enabled: true,
+            price: '7999',
+            interval: 'annual'
+          },
+          custom: {
+            enabled: false,
+            price: '',
+            interval: 'custom',
+            customInterval: {
+              value: 1,
+              unit: 'months'
+            }
+          },
+          autoRenew: true
+        }
+      };
+    }
+    
+    setCourseData(updatedData);
+    setValidationErrors({});
+  };
+
+  const handleLateFeeTypeChange = (value: 'none' | 'fixed' | 'percentage') => {
+    setCourseData({
+      ...courseData,
+      upfrontPayment: {
+        ...courseData.upfrontPayment,
+        lateFeeType: value
+      }
+    });
+  };
+
+  const handleEnrollmentRuleChange = (value: 'automatic' | 'approval') => {
+    setCourseData({
+      ...courseData,
+      enrollmentRule: value
+    });
+  };
+
+  // Generate installment due dates
+  const generateInstallmentDueDates = (numberOfPayments: number, startDate?: string) => {
+    const dates = [];
+    const start = startDate ? new Date(startDate) : new Date();
+    
+    for (let i = 0; i < numberOfPayments; i++) {
+      const dueDate = new Date(start);
+      dueDate.setMonth(dueDate.getMonth() + i);
+      dates.push(dueDate.toISOString().split('T')[0]); // YYYY-MM-DD format
+    }
+    
+    return dates;
+  };
 
   const validateConfiguration = () => {
     setIsValidating(true);
@@ -89,27 +325,6 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
     return Object.keys(errors).length === 0;
   };
 
-  const handleEnrollmentTypeChange = (value: string) => {
-    setCourseData({
-      ...courseData,
-      enrollmentType: value,
-      paymentModels: value === 'free' ? [] : courseData.paymentModels
-    });
-    setValidationErrors({});
-  };
-
-  const handlePaymentModelChange = (model: string, checked: boolean) => {
-    const models = checked 
-      ? [...courseData.paymentModels, model]
-      : courseData.paymentModels.filter((m: string) => m !== model);
-    
-    setCourseData({
-      ...courseData,
-      paymentModels: models
-    });
-    setValidationErrors({});
-  };
-
   const calculateTotalFromInstallments = (plan: { numberOfPayments: number; amountPerPayment: number }) => {
     return plan.numberOfPayments * plan.amountPerPayment;
   };
@@ -117,6 +332,30 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
   const addOrUpdateInstallmentPlan = () => {
     if (newInstallment.amountPerPayment <= 0) {
       setValidationErrors({...validationErrors, installmentPlans: 'Amount per payment must be greater than 0.'});
+      return;
+    }
+
+    // Validate due dates
+    const validDates = newInstallment.dueDates.filter(date => date && date.trim() !== '');
+    if (validDates.length !== newInstallment.numberOfPayments) {
+      setValidationErrors({...validationErrors, installmentDates: 'Please set due dates for all installment payments.'});
+      return;
+    }
+
+    // Check if dates are in chronological order
+    const dates = validDates.map(date => new Date(date));
+    for (let i = 1; i < dates.length; i++) {
+      if (dates[i] <= dates[i - 1]) {
+        setValidationErrors({...validationErrors, installmentDates: 'Payment due dates must be in chronological order.'});
+        return;
+      }
+    }
+
+    // Check if first date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (dates[0] < today) {
+      setValidationErrors({...validationErrors, installmentDates: 'First payment due date cannot be in the past.'});
       return;
     }
 
@@ -145,7 +384,8 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
       const newPlan: InstallmentPlan = {
         id: Date.now().toString(),
         numberOfPayments: newInstallment.numberOfPayments,
-        amountPerPayment: newInstallment.amountPerPayment
+        amountPerPayment: newInstallment.amountPerPayment,
+        dueDates: newInstallment.dueDates
       };
       
       setCourseData({
@@ -158,7 +398,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
     }
     
     setShowInstallmentModal(false);
-    setNewInstallment({ numberOfPayments: 2, amountPerPayment: 0 });
+    setNewInstallment({ numberOfPayments: 2, amountPerPayment: 0, dueDates: [] });
     setValidationErrors({});
   };
 
@@ -166,7 +406,8 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
     setEditingInstallment(plan);
     setNewInstallment({
       numberOfPayments: plan.numberOfPayments,
-      amountPerPayment: plan.amountPerPayment
+      amountPerPayment: plan.amountPerPayment,
+      dueDates: plan.dueDates
     });
     setShowInstallmentModal(true);
   };
@@ -221,6 +462,79 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
         </div>
       </div>
 
+      {/* Currency and General Settings */}
+      <Card className="border-2 border-blue-100">
+        <CardHeader className="bg-blue-50">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Globe className="w-5 h-5 text-blue-600" />
+            Currency & General Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Currency Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">
+                Currency *
+              </Label>
+              <Select 
+                value={courseData.currency} 
+                onValueChange={(value) => setCourseData({...courseData, currency: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencyOptions.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium">{currency.symbol}</span>
+                        <span>{currency.name}</span>
+                        <span className="text-gray-500">({currency.code})</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Default currency is based on your institute's location, but you can change it here.
+              </p>
+            </div>
+
+            {/* Coupon Codes Toggle */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Tag className="w-4 h-4" />
+                    Allow Coupon Codes
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Students can apply discount codes during checkout
+                  </p>
+                </div>
+                <Switch
+                  checked={courseData.allowCouponCodes}
+                  onCheckedChange={(checked) => 
+                    setCourseData({...courseData, allowCouponCodes: checked})
+                  }
+                />
+              </div>
+              {courseData.allowCouponCodes && (
+                <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center space-x-2">
+                    <Info className="w-4 h-4 text-green-600" />
+                    <p className="text-xs text-green-700">
+                      Coupon management will be available in the course dashboard after creation.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Enrollment Type Selection */}
       <Card className="border-2 border-orange-100">
         <CardHeader className="bg-orange-50">
@@ -230,7 +544,10 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          <RadioGroup value={courseData.enrollmentType} onValueChange={handleEnrollmentTypeChange}>
+          <RadioGroup 
+            value={courseData.enrollmentType} 
+            onValueChange={(value) => handleEnrollmentTypeChange(value as 'free' | 'paid')}
+          >
             <div className="space-y-4">
               <div className="flex items-start space-x-3 p-4 rounded-lg border hover:bg-gray-50 transition-colors">
                 <RadioGroupItem value="free" id="free" className="mt-1" />
@@ -330,195 +647,544 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                 </div>
                 
                 {courseData.paymentModels.includes('subscription') && (
-                  <Collapsible defaultOpen className="border rounded-lg">
-                    <CollapsibleTrigger className="w-full p-4 text-left bg-blue-50 hover:bg-blue-100 transition-colors rounded-t-lg">
-                      <h4 className="font-medium text-blue-900">Subscription Plans Configuration</h4>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="p-4 space-y-4">
-                      {validationErrors.subscriptionPlans && (
-                        <Alert variant="destructive">
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertDescription>{validationErrors.subscriptionPlans}</AlertDescription>
-                        </Alert>
-                      )}
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Monthly Plan */}
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <Switch
-                              checked={courseData.subscriptionPlans.monthly.enabled}
-                              onCheckedChange={(checked: boolean) => 
-                                setCourseData({
-                                  ...courseData,
-                                  subscriptionPlans: {
-                                    ...courseData.subscriptionPlans,
-                                    monthly: { ...courseData.subscriptionPlans.monthly, enabled: checked }
-                                  }
-                                })
-                              }
-                            />
-                            <Label className="font-medium">Monthly Plan</Label>
-                          </div>
-                          {courseData.subscriptionPlans.monthly.enabled && (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm">₹</span>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                className="w-20"
-                                value={courseData.subscriptionPlans.monthly.price}
-                                onChange={(e) => 
+                  <>
+                    <Collapsible defaultOpen className="border rounded-lg">
+                      <CollapsibleTrigger className="w-full p-4 text-left bg-blue-50 hover:bg-blue-100 transition-colors rounded-t-lg">
+                        <h4 className="font-medium text-blue-900">Subscription Plans Configuration</h4>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="p-4 space-y-4">
+                        {validationErrors.subscriptionPlans && (
+                          <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>{validationErrors.subscriptionPlans}</AlertDescription>
+                          </Alert>
+                        )}
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Monthly Plan */}
+                          <div className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <Switch
+                                checked={courseData.subscriptionPlans.monthly.enabled}
+                                onCheckedChange={(checked: boolean) => 
                                   setCourseData({
                                     ...courseData,
                                     subscriptionPlans: {
                                       ...courseData.subscriptionPlans,
-                                      monthly: { ...courseData.subscriptionPlans.monthly, price: e.target.value }
+                                      monthly: { ...courseData.subscriptionPlans.monthly, enabled: checked }
                                     }
                                   })
                                 }
                               />
+                              <Label className="font-medium">Monthly Plan</Label>
                             </div>
-                          )}
-                        </div>
-
-                        {/* Quarterly Plan */}
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <Switch
-                              checked={courseData.subscriptionPlans.quarterly.enabled}
-                              onCheckedChange={(checked: boolean) => 
-                                setCourseData({
-                                  ...courseData,
-                                  subscriptionPlans: {
-                                    ...courseData.subscriptionPlans,
-                                    quarterly: { ...courseData.subscriptionPlans.quarterly, enabled: checked }
+                            {courseData.subscriptionPlans.monthly.enabled && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm">{getCurrencySymbol(courseData.currency)}</span>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  className="w-20"
+                                  value={courseData.subscriptionPlans.monthly.price}
+                                  onChange={(e) => 
+                                    setCourseData({
+                                      ...courseData,
+                                      subscriptionPlans: {
+                                        ...courseData.subscriptionPlans,
+                                        monthly: { ...courseData.subscriptionPlans.monthly, price: e.target.value }
+                                      }
+                                    })
                                   }
-                                })
-                              }
-                            />
-                            <Label className="font-medium">Quarterly Plan</Label>
+                                />
+                              </div>
+                            )}
                           </div>
-                          {courseData.subscriptionPlans.quarterly.enabled && (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm">₹</span>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                className="w-20"
-                                value={courseData.subscriptionPlans.quarterly.price}
-                                onChange={(e) => 
+
+                          {/* Quarterly Plan */}
+                          <div className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <Switch
+                                checked={courseData.subscriptionPlans.quarterly.enabled}
+                                onCheckedChange={(checked: boolean) => 
                                   setCourseData({
                                     ...courseData,
                                     subscriptionPlans: {
                                       ...courseData.subscriptionPlans,
-                                      quarterly: { ...courseData.subscriptionPlans.quarterly, price: e.target.value }
+                                      quarterly: { ...courseData.subscriptionPlans.quarterly, enabled: checked }
                                     }
                                   })
                                 }
                               />
+                              <Label className="font-medium">Quarterly Plan</Label>
                             </div>
-                          )}
-                        </div>
-
-                        {/* Half-Yearly Plan */}
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <Switch
-                              checked={courseData.subscriptionPlans.halfYearly.enabled}
-                              onCheckedChange={(checked: boolean) => 
-                                setCourseData({
-                                  ...courseData,
-                                  subscriptionPlans: {
-                                    ...courseData.subscriptionPlans,
-                                    halfYearly: { ...courseData.subscriptionPlans.halfYearly, enabled: checked }
+                            {courseData.subscriptionPlans.quarterly.enabled && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm">{getCurrencySymbol(courseData.currency)}</span>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  className="w-20"
+                                  value={courseData.subscriptionPlans.quarterly.price}
+                                  onChange={(e) => 
+                                    setCourseData({
+                                      ...courseData,
+                                      subscriptionPlans: {
+                                        ...courseData.subscriptionPlans,
+                                        quarterly: { ...courseData.subscriptionPlans.quarterly, price: e.target.value }
+                                      }
+                                    })
                                   }
-                                })
-                              }
-                            />
-                            <Label className="font-medium">Half-Yearly Plan</Label>
+                                />
+                              </div>
+                            )}
                           </div>
-                          {courseData.subscriptionPlans.halfYearly.enabled && (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm">₹</span>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                className="w-20"
-                                value={courseData.subscriptionPlans.halfYearly.price}
-                                onChange={(e) => 
+
+                          {/* Half-Yearly Plan */}
+                          <div className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <Switch
+                                checked={courseData.subscriptionPlans.halfYearly.enabled}
+                                onCheckedChange={(checked: boolean) => 
                                   setCourseData({
                                     ...courseData,
                                     subscriptionPlans: {
                                       ...courseData.subscriptionPlans,
-                                      halfYearly: { ...courseData.subscriptionPlans.halfYearly, price: e.target.value }
+                                      halfYearly: { ...courseData.subscriptionPlans.halfYearly, enabled: checked }
                                     }
                                   })
                                 }
                               />
+                              <Label className="font-medium">Half-Yearly Plan</Label>
                             </div>
-                          )}
-                        </div>
-
-                        {/* Annual Plan */}
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <Switch
-                              checked={courseData.subscriptionPlans.annual.enabled}
-                              onCheckedChange={(checked: boolean) => 
-                                setCourseData({
-                                  ...courseData,
-                                  subscriptionPlans: {
-                                    ...courseData.subscriptionPlans,
-                                    annual: { ...courseData.subscriptionPlans.annual, enabled: checked }
+                            {courseData.subscriptionPlans.halfYearly.enabled && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm">{getCurrencySymbol(courseData.currency)}</span>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  className="w-20"
+                                  value={courseData.subscriptionPlans.halfYearly.price}
+                                  onChange={(e) => 
+                                    setCourseData({
+                                      ...courseData,
+                                      subscriptionPlans: {
+                                        ...courseData.subscriptionPlans,
+                                        halfYearly: { ...courseData.subscriptionPlans.halfYearly, price: e.target.value }
+                                      }
+                                    })
                                   }
-                                })
-                              }
-                            />
-                            <Label className="font-medium">Annual Plan</Label>
+                                />
+                              </div>
+                            )}
                           </div>
-                          {courseData.subscriptionPlans.annual.enabled && (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm">₹</span>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                className="w-20"
-                                value={courseData.subscriptionPlans.annual.price}
-                                onChange={(e) => 
+
+                          {/* Annual Plan */}
+                          <div className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <Switch
+                                checked={courseData.subscriptionPlans.annual.enabled}
+                                onCheckedChange={(checked: boolean) => 
                                   setCourseData({
                                     ...courseData,
                                     subscriptionPlans: {
                                       ...courseData.subscriptionPlans,
-                                      annual: { ...courseData.subscriptionPlans.annual, price: e.target.value }
+                                      annual: { ...courseData.subscriptionPlans.annual, enabled: checked }
                                     }
                                   })
                                 }
                               />
+                              <Label className="font-medium">Annual Plan</Label>
+                            </div>
+                            {courseData.subscriptionPlans.annual.enabled && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm">{getCurrencySymbol(courseData.currency)}</span>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  className="w-20"
+                                  value={courseData.subscriptionPlans.annual.price}
+                                  onChange={(e) => 
+                                    setCourseData({
+                                      ...courseData,
+                                      subscriptionPlans: {
+                                        ...courseData.subscriptionPlans,
+                                        annual: { ...courseData.subscriptionPlans.annual, price: e.target.value }
+                                      }
+                                    })
+                                  }
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Custom Plan */}
+                          <div className="flex items-center justify-between p-3 border rounded-lg bg-purple-50">
+                            <div className="flex items-center space-x-3">
+                              <Switch
+                                checked={courseData.subscriptionPlans.custom.enabled}
+                                onCheckedChange={(checked: boolean) => 
+                                  setCourseData({
+                                    ...courseData,
+                                    subscriptionPlans: {
+                                      ...courseData.subscriptionPlans,
+                                      custom: { ...courseData.subscriptionPlans.custom, enabled: checked }
+                                    }
+                                  })
+                                }
+                              />
+                              <Label className="font-medium text-purple-800">Custom Interval Plan</Label>
+                              <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700">Flexible</Badge>
+                            </div>
+                            {courseData.subscriptionPlans.custom.enabled && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm">{getCurrencySymbol(courseData.currency)}</span>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  className="w-20"
+                                  value={courseData.subscriptionPlans.custom.price}
+                                  onChange={(e) => 
+                                    setCourseData({
+                                      ...courseData,
+                                      subscriptionPlans: {
+                                        ...courseData.subscriptionPlans,
+                                        custom: { ...courseData.subscriptionPlans.custom, price: e.target.value }
+                                      }
+                                    })
+                                  }
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Custom Interval Configuration */}
+                          {courseData.subscriptionPlans.custom.enabled && (
+                            <div className="ml-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                              <Label className="text-sm font-medium text-purple-800 mb-2 block">
+                                Define Custom Billing Interval
+                              </Label>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label className="text-xs text-gray-600">Interval Value</Label>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={courseData.subscriptionPlans.custom.customInterval?.value || 1}
+                                    onChange={(e) => 
+                                      setCourseData({
+                                        ...courseData,
+                                        subscriptionPlans: {
+                                          ...courseData.subscriptionPlans,
+                                          custom: {
+                                            ...courseData.subscriptionPlans.custom,
+                                            customInterval: {
+                                              ...courseData.subscriptionPlans.custom.customInterval,
+                                              value: parseInt(e.target.value) || 1
+                                            }
+                                          }
+                                        }
+                                      })
+                                    }
+                                    className="mt-1"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-gray-600">Unit</Label>
+                                  <Select
+                                    value={courseData.subscriptionPlans.custom.customInterval?.unit || 'months'}
+                                    onValueChange={(value: 'days' | 'weeks' | 'months' | 'years') => 
+                                      setCourseData({
+                                        ...courseData,
+                                        subscriptionPlans: {
+                                          ...courseData.subscriptionPlans,
+                                          custom: {
+                                            ...courseData.subscriptionPlans.custom,
+                                            customInterval: {
+                                              ...courseData.subscriptionPlans.custom.customInterval,
+                                              unit: value
+                                            }
+                                          }
+                                        }
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger className="mt-1">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="days">Days</SelectItem>
+                                      <SelectItem value="weeks">Weeks</SelectItem>
+                                      <SelectItem value="months">Months</SelectItem>
+                                      <SelectItem value="years">Years</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <p className="text-xs text-purple-600 mt-2">
+                                Billing every {courseData.subscriptionPlans.custom.customInterval?.value || 1} {courseData.subscriptionPlans.custom.customInterval?.unit || 'months'}
+                              </p>
                             </div>
                           )}
                         </div>
-                      </div>
 
-                      <Separator />
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="autoRenew"
-                          checked={courseData.subscriptionPlans.autoRenew}
-                          onCheckedChange={(checked: boolean) => 
+                        <Separator />
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="autoRenew"
+                            checked={courseData.subscriptionPlans.autoRenew}
+                            onCheckedChange={(checked: boolean) => 
+                              setCourseData({
+                                ...courseData,
+                                subscriptionPlans: { ...courseData.subscriptionPlans, autoRenew: checked }
+                              })
+                            }
+                          />
+                          <Label htmlFor="autoRenew" className="text-sm">Automatically renew subscriptions</Label>
+                          <Info className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <p className="text-xs text-gray-500">Students will be automatically billed based on their chosen plan.</p>
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    {/* Add Subscription Plans Preview */}
+                    <div className="flex items-center justify-between mt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          // Ensure subscription plans exist
+                          if (!courseData.subscriptionPlans) {
                             setCourseData({
                               ...courseData,
-                              subscriptionPlans: { ...courseData.subscriptionPlans, autoRenew: checked }
-                            })
+                              subscriptionPlans: {
+                                monthly: {
+                                  enabled: true,
+                                  price: '999',
+                                  interval: 'monthly'
+                                },
+                                quarterly: {
+                                  enabled: true,
+                                  price: '2499',
+                                  interval: 'quarterly'
+                                },
+                                halfYearly: {
+                                  enabled: true,
+                                  price: '4499',
+                                  interval: 'halfYearly'
+                                },
+                                annual: {
+                                  enabled: true,
+                                  price: '7999',
+                                  interval: 'annual'
+                                },
+                                custom: {
+                                  enabled: false,
+                                  price: '',
+                                  interval: 'custom',
+                                  customInterval: {
+                                    value: 1,
+                                    unit: 'months'
+                                  }
+                                },
+                                autoRenew: true
+                              }
+                            });
                           }
+                          console.log('Current subscription plans:', courseData.subscriptionPlans);
+                          console.log('Current currency:', courseData.currency);
+                          setShowSubscriptionPreview(!showSubscriptionPreview);
+                        }}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        {showSubscriptionPreview ? 'Hide Preview' : 'Show Preview'}
+                      </Button>
+                    </div>
+
+                    {showSubscriptionPreview && courseData.subscriptionPlans && (
+                      <div className="mt-6">
+                        <SubscriptionPlanPreview 
+                          currency={courseData.currency || 'INR'}
+                          subscriptionPlans={courseData.subscriptionPlans}
+                          features={subscriptionFeatures}
+                          onSelectPlan={(planType) => {
+                            console.log('Selected plan:', planType);
+                          }}
                         />
-                        <Label htmlFor="autoRenew" className="text-sm">Automatically renew subscriptions</Label>
-                        <Info className="w-4 h-4 text-gray-400" />
                       </div>
-                      <p className="text-xs text-gray-500">Students will be automatically billed based on their chosen plan.</p>
-                    </CollapsibleContent>
-                  </Collapsible>
+                    )}
+
+                    {/* Custom Interval Plan */}
+                    <div className="flex items-center justify-between p-3 border rounded-lg mt-4">
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={courseData.subscriptionPlans?.custom?.enabled || false}
+                          onCheckedChange={(checked: boolean) => {
+                            const updatedPlans = {
+                              ...courseData.subscriptionPlans,
+                              custom: {
+                                enabled: checked,
+                                price: checked ? courseData.subscriptionPlans?.custom?.price || '' : '',
+                                interval: 'custom',
+                                customInterval: {
+                                  value: 1,
+                                  unit: 'months' as const
+                                }
+                              }
+                            };
+                            setCourseData({
+                              ...courseData,
+                              subscriptionPlans: updatedPlans
+                            });
+                          }}
+                        />
+                        <Label className="font-medium">Custom Interval Plan</Label>
+                      </div>
+                      {courseData.subscriptionPlans?.custom?.enabled && (
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="1"
+                            className="w-20"
+                            value={courseData.subscriptionPlans?.custom?.customInterval?.value || 1}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 1;
+                              const updatedPlans = {
+                                ...courseData.subscriptionPlans,
+                                custom: {
+                                  ...courseData.subscriptionPlans.custom,
+                                  customInterval: {
+                                    ...courseData.subscriptionPlans.custom.customInterval,
+                                    value
+                                  }
+                                }
+                              };
+                              setCourseData({
+                                ...courseData,
+                                subscriptionPlans: updatedPlans
+                              });
+                            }}
+                          />
+                          <Select
+                            value={courseData.subscriptionPlans?.custom?.customInterval?.unit || 'months'}
+                            onValueChange={(value: 'days' | 'weeks' | 'months' | 'years') => {
+                              const updatedPlans = {
+                                ...courseData.subscriptionPlans,
+                                custom: {
+                                  ...courseData.subscriptionPlans.custom,
+                                  customInterval: {
+                                    ...courseData.subscriptionPlans.custom.customInterval,
+                                    unit: value
+                                  }
+                                }
+                              };
+                              setCourseData({
+                                ...courseData,
+                                subscriptionPlans: updatedPlans
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="days">Days</SelectItem>
+                              <SelectItem value="weeks">Weeks</SelectItem>
+                              <SelectItem value="months">Months</SelectItem>
+                              <SelectItem value="years">Years</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <span className="text-sm">{getCurrencySymbol(courseData.currency)}</span>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            className="w-20"
+                            value={courseData.subscriptionPlans?.custom?.price || ''}
+                            onChange={(e) => {
+                              const updatedPlans = {
+                                ...courseData.subscriptionPlans,
+                                custom: {
+                                  ...courseData.subscriptionPlans.custom,
+                                  price: e.target.value
+                                }
+                              };
+                              setCourseData({
+                                ...courseData,
+                                subscriptionPlans: updatedPlans
+                              });
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Preview Button */}
+                    <div className="flex items-center justify-between mt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          // Ensure subscription plans exist
+                          if (!courseData.subscriptionPlans) {
+                            setCourseData({
+                              ...courseData,
+                              subscriptionPlans: {
+                                monthly: {
+                                  enabled: true,
+                                  price: '999',
+                                  interval: 'monthly'
+                                },
+                                quarterly: {
+                                  enabled: true,
+                                  price: '2499',
+                                  interval: 'quarterly'
+                                },
+                                halfYearly: {
+                                  enabled: true,
+                                  price: '4499',
+                                  interval: 'halfYearly'
+                                },
+                                annual: {
+                                  enabled: true,
+                                  price: '7999',
+                                  interval: 'annual'
+                                },
+                                custom: {
+                                  enabled: false,
+                                  price: '',
+                                  interval: 'custom',
+                                  customInterval: {
+                                    value: 1,
+                                    unit: 'months'
+                                  }
+                                },
+                                autoRenew: true
+                              }
+                            });
+                          }
+                          console.log('Current subscription plans:', courseData.subscriptionPlans);
+                          console.log('Current currency:', courseData.currency);
+                          setShowSubscriptionPreview(!showSubscriptionPreview);
+                        }}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        {showSubscriptionPreview ? 'Hide Preview' : 'Show Preview'}
+                      </Button>
+                    </div>
+
+                    {/* Preview Section */}
+                    {showSubscriptionPreview && courseData.subscriptionPlans && (
+                      <div className="mt-6">
+                        <SubscriptionPlanPreview 
+                          currency={courseData.currency || 'INR'}
+                          subscriptionPlans={courseData.subscriptionPlans}
+                          features={subscriptionFeatures}
+                          onSelectPlan={(planType) => {
+                            console.log('Selected plan:', planType);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -548,7 +1214,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                       )}
                       
                       <div>
-                        <Label className="text-sm font-medium">Full Price (₹) *</Label>
+                        <Label className="text-sm font-medium">Full Price ({getCurrencySymbol(courseData.currency)}) *</Label>
                         <Input
                           type="number"
                           placeholder="Enter full course price"
@@ -605,31 +1271,47 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                             {/* Installment Plans List */}
                             <div className="space-y-2">
                               {courseData.upfrontPayment.installmentPlans.map((plan: InstallmentPlan) => (
-                                <div key={plan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                                  <div>
-                                    <span className="text-sm font-medium">
-                                      {plan.numberOfPayments} Payments @ ₹{plan.amountPerPayment.toLocaleString()}
-                                    </span>
-                                    <p className="text-xs text-gray-500">
-                                      Total: ₹{calculateTotalFromInstallments(plan).toLocaleString()}
-                                    </p>
+                                <div key={plan.id} className="p-3 bg-gray-50 rounded-lg border">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                      <span className="text-sm font-medium">
+                                        {plan.numberOfPayments} Payments @ {getCurrencySymbol(courseData.currency)}{plan.amountPerPayment.toLocaleString()}
+                                      </span>
+                                      <p className="text-xs text-gray-500">
+                                        Total: {getCurrencySymbol(courseData.currency)}{calculateTotalFromInstallments(plan).toLocaleString()}
+                                      </p>
+                                    </div>
+                                    <div className="flex space-x-2">
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => editInstallmentPlan(plan)}
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </Button>
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={() => removeInstallmentPlan(plan.id)}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
                                   </div>
-                                  <div className="flex space-x-2">
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => editInstallmentPlan(plan)}
-                                    >
-                                      <Edit className="w-3 h-3" />
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      onClick={() => removeInstallmentPlan(plan.id)}
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </Button>
-                                  </div>
+                                  {/* Payment Schedule */}
+                                  {plan.dueDates && plan.dueDates.length > 0 && (
+                                    <div className="flex items-center space-x-2 text-xs text-gray-600">
+                                      <Calendar className="w-3 h-3" />
+                                      <span>Payment Schedule:</span>
+                                      <div className="flex flex-wrap gap-1">
+                                        {plan.dueDates.map((date, index) => (
+                                          <Badge key={index} variant="outline" className="text-xs">
+                                            Payment {index + 1}: {new Date(date).toLocaleDateString()}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -637,49 +1319,115 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                             {/* Add/Edit Installment Modal */}
                             {showInstallmentModal && (
                               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                <div className="bg-white p-6 rounded-lg w-96 max-w-full mx-4">
+                                <div className="bg-white p-6 rounded-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
                                   <h3 className="text-lg font-medium mb-4">
                                     {editingInstallment ? 'Edit' : 'Add'} Installment Plan
                                   </h3>
                                   <div className="space-y-4">
-                                    <div>
-                                      <Label className="text-sm font-medium">Number of Payments</Label>
-                                      <Select
-                                        value={newInstallment.numberOfPayments.toString()}
-                                        onValueChange={(value) => setNewInstallment({...newInstallment, numberOfPayments: parseInt(value)})}
-                                      >
-                                        <SelectTrigger className="mt-1">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="2">2</SelectItem>
-                                          <SelectItem value="3">3</SelectItem>
-                                          <SelectItem value="4">4</SelectItem>
-                                          <SelectItem value="6">6</SelectItem>
-                                          <SelectItem value="12">12</SelectItem>
-                                        </SelectContent>
-                                      </Select>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <Label className="text-sm font-medium">Number of Payments</Label>
+                                        <Select
+                                          value={newInstallment.numberOfPayments.toString()}
+                                          onValueChange={(value) => {
+                                            const numPayments = parseInt(value);
+                                            const generatedDates = generateInstallmentDueDates(numPayments);
+                                            setNewInstallment({
+                                              ...newInstallment, 
+                                              numberOfPayments: numPayments,
+                                              dueDates: generatedDates
+                                            });
+                                          }}
+                                        >
+                                          <SelectTrigger className="mt-1">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="2">2</SelectItem>
+                                            <SelectItem value="3">3</SelectItem>
+                                            <SelectItem value="4">4</SelectItem>
+                                            <SelectItem value="6">6</SelectItem>
+                                            <SelectItem value="12">12</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label className="text-sm font-medium">Amount per Payment ({getCurrencySymbol(courseData.currency)})</Label>
+                                        <Input
+                                          type="number"
+                                          value={newInstallment.amountPerPayment}
+                                          onChange={(e) => setNewInstallment({...newInstallment, amountPerPayment: parseInt(e.target.value) || 0})}
+                                          className="mt-1"
+                                        />
+                                        {newInstallment.amountPerPayment > 0 && (
+                                          <p className="text-xs text-gray-500 mt-1">
+                                            Total: {getCurrencySymbol(courseData.currency)}{calculateTotalFromInstallments(newInstallment).toLocaleString()}
+                                          </p>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div>
-                                      <Label className="text-sm font-medium">Amount per Payment (₹)</Label>
-                                      <Input
-                                        type="number"
-                                        value={newInstallment.amountPerPayment}
-                                        onChange={(e) => setNewInstallment({...newInstallment, amountPerPayment: parseInt(e.target.value) || 0})}
-                                        className="mt-1"
-                                      />
-                                      {newInstallment.amountPerPayment > 0 && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          Total: ₹{calculateTotalFromInstallments(newInstallment).toLocaleString()}
-                                        </p>
+
+                                    {/* Payment Schedule Configuration */}
+                                    <div className="space-y-3">
+                                      <div className="flex items-center justify-between">
+                                        <Label className="text-sm font-medium flex items-center gap-2">
+                                          <Calendar className="w-4 h-4" />
+                                          Payment Schedule
+                                        </Label>
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            const generatedDates = generateInstallmentDueDates(newInstallment.numberOfPayments);
+                                            setNewInstallment({...newInstallment, dueDates: generatedDates});
+                                          }}
+                                        >
+                                          Auto-Generate Monthly
+                                        </Button>
+                                      </div>
+                                      
+                                      {validationErrors.installmentDates && (
+                                        <Alert variant="destructive">
+                                          <AlertTriangle className="h-4 w-4" />
+                                          <AlertDescription>{validationErrors.installmentDates}</AlertDescription>
+                                        </Alert>
                                       )}
+
+                                      <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto">
+                                        {Array.from({ length: newInstallment.numberOfPayments }, (_, index) => (
+                                          <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                            <span className="text-sm font-medium w-20">Payment {index + 1}:</span>
+                                            <Input
+                                              type="date"
+                                              value={newInstallment.dueDates[index] || ''}
+                                              onChange={(e) => {
+                                                const newDates = [...newInstallment.dueDates];
+                                                newDates[index] = e.target.value;
+                                                setNewInstallment({...newInstallment, dueDates: newDates});
+                                              }}
+                                              className="flex-1"
+                                            />
+                                            <span className="text-xs text-gray-500 w-20">
+                                              {getCurrencySymbol(courseData.currency)}{newInstallment.amountPerPayment.toLocaleString()}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      
+                                      <div className="flex items-center space-x-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                                        <Info className="w-4 h-4" />
+                                        <p>
+                                          Set specific due dates for each installment payment. Students will be notified before each due date.
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
                                   <div className="flex justify-end space-x-2 mt-6">
                                     <Button variant="outline" onClick={() => {
                                       setShowInstallmentModal(false);
                                       setEditingInstallment(null);
-                                      setNewInstallment({ numberOfPayments: 2, amountPerPayment: 0 });
+                                      setNewInstallment({ numberOfPayments: 2, amountPerPayment: 0, dueDates: [] });
                                     }}>
                                       Cancel
                                     </Button>
@@ -706,12 +1454,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                                   <Label className="text-sm font-medium">Late Fee Type</Label>
                                   <Select
                                     value={courseData.upfrontPayment.lateFeeType}
-                                    onValueChange={(value) => 
-                                      setCourseData({
-                                        ...courseData,
-                                        upfrontPayment: { ...courseData.upfrontPayment, lateFeeType: value }
-                                      })
-                                    }
+                                    onValueChange={(value) => handleLateFeeTypeChange(value as 'none' | 'fixed' | 'percentage')}
                                   >
                                     <SelectTrigger className="mt-1">
                                       <SelectValue />
@@ -726,7 +1469,7 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
                                 
                                 {courseData.upfrontPayment.lateFeeType === 'fixed' && (
                                   <div>
-                                    <Label className="text-sm font-medium">Fixed Amount (₹)</Label>
+                                    <Label className="text-sm font-medium">Fixed Amount ({getCurrencySymbol(courseData.currency)})</Label>
                                     <Input
                                       type="number"
                                       value={courseData.upfrontPayment.lateFeeAmount}
@@ -842,7 +1585,10 @@ export const PaymentConfiguration: React.FC<PaymentConfigurationProps> = ({ cour
           <p className="text-sm text-gray-600">Define how students gain access after payment/registration</p>
         </CardHeader>
         <CardContent>
-          <RadioGroup value={courseData.enrollmentRule} onValueChange={(value) => setCourseData({...courseData, enrollmentRule: value})}>
+          <RadioGroup 
+            value={courseData.enrollmentRule} 
+            onValueChange={(value) => handleEnrollmentRuleChange(value as 'automatic' | 'approval')}
+          >
             <div className="space-y-3">
               <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
                 <RadioGroupItem value="automatic" id="automatic" className="mt-1" />

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,13 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Info, Plus, Edit, Trash2, Save, Eye } from 'lucide-react';
-import { PaymentConfiguration } from '@/components/PaymentConfiguration';
+import { PaymentPlanSelector } from '@/components/PaymentPlanSelector';
 
-interface InstallmentPlan {
-  id: string;
-  numberOfPayments: number;
-  amountPerPayment: number;
-}
+// Payment plans are now managed in Institute Settings
+// Course creation just references the selected plan ID
 
 const CourseCreation = () => {
   const [activeTab, setActiveTab] = useState('basic-info');
@@ -28,32 +24,9 @@ const CourseCreation = () => {
     description: '',
     category: '',
     instructor: '',
-    enrollmentType: 'free',
-    paymentModels: [],
-    subscriptionPlans: {
-      monthly: { enabled: false, price: '' },
-      quarterly: { enabled: false, price: '' },
-      halfYearly: { enabled: false, price: '' },
-      annual: { enabled: false, price: '' },
-      autoRenew: true
-    },
-    upfrontPayment: {
-      fullPrice: '',
-      allowInstallments: false,
-      installmentPlans: [] as InstallmentPlan[],
-      lateFeeType: 'none',
-      lateFeeAmount: '',
-      lateFeePercentage: '',
-      gracePeriod: '7'
-    },
-    invoiceBased: {
-      allowStudentRequests: false
-    },
+    // Simplified payment configuration - just store the selected payment plan ID
+    selectedPaymentPlanId: '1', // Default to the first plan
     enrollmentRule: 'automatic',
-    donationSettings: {
-      enabled: false,
-      suggestedAmounts: ''
-    }
   });
 
   const handleSaveDraft = () => {
@@ -64,6 +37,10 @@ const CourseCreation = () => {
   const handlePublishCourse = () => {
     // Publish course
     console.log('Publishing course:', courseData);
+  };
+
+  const handlePaymentPlanSelect = (planId: string) => {
+    setCourseData({...courseData, selectedPaymentPlanId: planId});
   };
 
   return (
@@ -255,7 +232,66 @@ const CourseCreation = () => {
 
                 {/* Payment & Enrollment Tab */}
                 <TabsContent value="payment" className="space-y-8">
-                  <PaymentConfiguration courseData={courseData} setCourseData={setCourseData} />
+                  {/* Payment Plan Selection */}
+                  <PaymentPlanSelector
+                    selectedPlanId={courseData.selectedPaymentPlanId}
+                    onPlanSelect={handlePaymentPlanSelect}
+                  />
+
+                  {/* Enrollment Rules */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Enrollment Rules</CardTitle>
+                      <p className="text-sm text-gray-600">Define how students gain access after payment/registration</p>
+                    </CardHeader>
+                    <CardContent>
+                      <RadioGroup value={courseData.enrollmentRule} onValueChange={(value) => setCourseData({...courseData, enrollmentRule: value})}>
+                        <div className="space-y-3">
+                          <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                            <RadioGroupItem value="automatic" id="automatic" className="mt-1" />
+                            <div>
+                              <Label htmlFor="automatic" className="font-medium cursor-pointer">
+                                Automatic Enrollment on successful payment/registration
+                              </Label>
+                              <p className="text-sm text-gray-600 mt-1">
+                                Students get immediate access after successful payment (recommended for most courses)
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                            <RadioGroupItem value="approval" id="approval" className="mt-1" />
+                            <div>
+                              <Label htmlFor="approval" className="font-medium cursor-pointer">
+                                Require Admin Approval after successful payment/registration
+                              </Label>
+                              <p className="text-sm text-gray-600 mt-1">
+                                Students must wait for admin approval before accessing the course content
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </RadioGroup>
+                    </CardContent>
+                  </Card>
+
+                  {/* Payment Gateway Information */}
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start space-x-3">
+                        <Info className="w-5 h-5 text-blue-600 mt-1" />
+                        <div>
+                          <h4 className="font-medium text-blue-900 mb-2">Payment Gateway Integration</h4>
+                          <p className="text-sm text-blue-800 mb-2">
+                            Currently integrated with <strong>Stripe</strong> for secure payment processing.
+                          </p>
+                          <p className="text-sm text-blue-700">
+                            Future integrations: Razorpay, PayPal, and other regional payment gateways will be available soon.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </div>
             </Tabs>
