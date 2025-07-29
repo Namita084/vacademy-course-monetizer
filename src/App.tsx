@@ -8,6 +8,7 @@ import CourseCreation from "./pages/CourseCreation";
 import InstituteSettings from "./pages/InstituteSettings";
 import InvitePage from "./pages/InvitePage";
 import NotFound from "./pages/NotFound";
+import StudentInvitePage from "./pages/StudentInvitePage";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/course-creation" element={<CourseCreation />} />
           <Route path="/institute-settings" element={<InstituteSettings />} />
           <Route path="/invite" element={<InvitePage />} />
+          <Route path="/invite/student/:inviteId" element={<StudentInvitePage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

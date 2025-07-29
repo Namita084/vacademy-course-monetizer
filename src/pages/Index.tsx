@@ -133,6 +133,51 @@ const Index = () => {
           </Card>
         </div>
       </div>
+
+      {/* Student Invites Card (now at the bottom) */}
+      <div className="max-w-xl mx-auto mt-8 mb-8">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+          <h2 className="text-xl font-bold mb-2 text-gray-900">Student Invites</h2>
+          <p className="text-gray-600 mb-4 text-sm">Preview and test all student invite scenarios as a student would experience them.</p>
+          <ul className="space-y-2">
+            <li>
+              <Link to="/invite/student/demo?paymentModel=subscription&needsApproval=true" className="text-[#ED7424] font-semibold underline">
+                Test Student Invite Page (Subscription, Approval Required)
+              </Link>
+            </li>
+            <li>
+              <Link to="/invite/student/demo-one-time-approval?paymentModel=oneTime&needsApproval=true" className="text-blue-700 underline">
+                One Time Payment – Requires Approval
+              </Link>
+            </li>
+            <li>
+              <Link to="/invite/student/demo-donation-approval?paymentModel=donation&needsApproval=true" className="text-blue-700 underline">
+                Optional Donation – Requires Approval
+              </Link>
+            </li>
+            <li>
+              <Link to="/invite/student/demo-free-approval?paymentModel=free&needsApproval=true" className="text-blue-700 underline">
+                Free – Requires Approval
+              </Link>
+            </li>
+            <li>
+              <Link to="/invite/student/demo-one-time-direct?paymentModel=oneTime&needsApproval=false" className="text-blue-700 underline">
+                One Time Payment – Direct Entry
+              </Link>
+            </li>
+            <li>
+              <Link to="/invite/student/demo-donation-direct?paymentModel=donation&needsApproval=false" className="text-blue-700 underline">
+                Optional Donation – Direct Entry
+              </Link>
+            </li>
+            <li>
+              <Link to="/invite/student/demo-free-direct?paymentModel=free&needsApproval=false" className="text-blue-700 underline">
+                Free – Direct Entry
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 };
